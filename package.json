@@ -17,7 +17,22 @@
       "professor": [
         { "type": "webview", "id": "professor.view", "name": "Professor" }
       ]
-    }
+    },
+    "configuration": {
+      "title": "Professor",
+      "properties": {
+        "professor.ollamaUrl": { "type": "string", "default": "http://localhost:11434" },
+        "professor.model": { "type": "string", "default": "qwen3:14b" },
+        "professor.cooldownSeconds": { "type": "number", "default": 20 },
+        "professor.debounceMs": { "type": "number", "default": 1500 },
+        "professor.maxContextLines": { "type": "number", "default": 30 },
+        "professor.muted": { "type": "boolean", "default": false }
+      }
+    },
+    "commands": [
+      { "command": "professor.toggleMute", "title": "Professor: Alternar mudo" },
+      { "command": "professor.commentNow", "title": "Professor: Comentar agora" }
+    ]
   },
   "scripts": {
     "compile": "node esbuild.mjs",
