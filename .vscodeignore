@@ -5,3 +5,7 @@ vitest.config.ts
 esbuild.mjs
 tsconfig.json
 docs/**
+.superpowers/**
+.gitignore
+*.vsix
+.git/**
