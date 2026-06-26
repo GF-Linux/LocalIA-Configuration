@@ -6,7 +6,8 @@ export async function askOllama(
 ): Promise<string> {
   // Fix 6: combine caller signal with a timeout so a hung Ollama self-recovers.
   // Node 24 supports AbortSignal.any() and AbortSignal.timeout().
-  const timeoutMs = opts.timeoutMs ?? 30000;
+  // Default 120s: a 14B model cold-starts (loading into VRAM) can take ~50s.
+  const timeoutMs = opts.timeoutMs ?? 120000;
   const signal = opts.signal
     ? AbortSignal.any([opts.signal, AbortSignal.timeout(timeoutMs)])
     : AbortSignal.timeout(timeoutMs);

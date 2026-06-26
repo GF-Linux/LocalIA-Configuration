@@ -1,4 +1,10 @@
-export type Hint = { comment: string; why: string; nudge: string };
+export type Hint = {
+  comment: string;
+  why: string;
+  nudge: string;
+  /** Optional idiomatic code snippet illustrating the fix. */
+  suggestion?: string;
+};
 
 export function parseHint(raw: string): Hint | null {
   const start = raw.indexOf("{");
@@ -16,5 +22,10 @@ export function parseHint(raw: string): Hint | null {
     typeof obj.comment === "string" &&
     typeof obj.why === "string" &&
     typeof obj.nudge === "string";
-  return ok ? { comment: obj.comment, why: obj.why, nudge: obj.nudge } : null;
+  if (!ok) return null;
+  const hint: Hint = { comment: obj.comment, why: obj.why, nudge: obj.nudge };
+  if (typeof obj.suggestion === "string" && obj.suggestion.trim()) {
+    hint.suggestion = obj.suggestion;
+  }
+  return hint;
 }

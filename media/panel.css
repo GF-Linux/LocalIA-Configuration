@@ -2,3 +2,13 @@ body { font-family: var(--vscode-font-family); padding: 10px; color: var(--vscod
 .empty { opacity: 0.7; font-style: italic; }
 .hint .comment { font-size: 1.05em; margin-bottom: 8px; }
 .hint .why, .hint .nudge { margin-top: 6px; opacity: 0.95; }
+.hint .suggestion { margin-top: 8px; }
+.hint .suggestion pre {
+  background: var(--vscode-textCodeBlock-background, rgba(127,127,127,0.1));
+  border: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.3));
+  border-radius: 4px; padding: 8px; overflow-x: auto; margin: 4px 0 0;
+}
+.hint .suggestion code {
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.95em; white-space: pre;
+}

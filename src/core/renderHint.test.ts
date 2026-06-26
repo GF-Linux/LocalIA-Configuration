@@ -22,4 +22,27 @@ describe("renderHintHtml", () => {
     expect(html).not.toContain("<script>x");
     expect(html).toContain("&lt;script&gt;");
   });
+
+  it("renderiza bloco de código quando há suggestion", () => {
+    const html = renderHintHtml(
+      { comment: "c", why: "w", nudge: "n", suggestion: "with open(f) as fh:" },
+      false
+    );
+    expect(html).toContain("<pre><code>");
+    expect(html).toContain("with open(f) as fh:");
+  });
+
+  it("escapa HTML dentro da suggestion (XSS)", () => {
+    const html = renderHintHtml(
+      { comment: "c", why: "w", nudge: "n", suggestion: "<script>x</script>" },
+      false
+    );
+    expect(html).not.toContain("<script>x");
+    expect(html).toContain("&lt;script&gt;");
+  });
+
+  it("não renderiza bloco de código sem suggestion", () => {
+    const html = renderHintHtml({ comment: "c", why: "w", nudge: "n" }, false);
+    expect(html).not.toContain("<pre>");
+  });
 });

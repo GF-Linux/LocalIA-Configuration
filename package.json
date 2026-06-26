@@ -26,6 +26,7 @@
         "professor.cooldownSeconds": { "type": "number", "default": 20 },
         "professor.debounceMs": { "type": "number", "default": 1500 },
         "professor.maxContextLines": { "type": "number", "default": 30 },
+        "professor.timeoutSeconds": { "type": "number", "default": 120 },
         "professor.muted": { "type": "boolean", "default": false }
       }
     },

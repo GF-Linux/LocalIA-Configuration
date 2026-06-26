@@ -73,11 +73,17 @@ export class Watcher {
       const raw = await askOllama(buildTutorMessages(ctx), {
         url: cfg.get<string>("ollamaUrl", "http://localhost:11434"),
         model: cfg.get<string>("model", "qwen3:14b"),
+        timeoutMs: cfg.get<number>("timeoutSeconds", 120) * 1000,
         signal: this.abort.signal,
       });
       this.panel.update(parseHint(raw), force); // null => painel fica quieto (fail-quiet)
-    } catch {
-      // erro de rede/Ollama: silencioso, nunca interrompe o usuário
+    } catch (e) {
+      // Fail-quiet para o auto path; mas um comando explícito do usuário merece feedback
+      // de erro (senão "Comentar agora" parece não fazer nada). AbortError de uma chamada
+      // substituída é normal — não reporta.
+      if (force && !(e instanceof Error && e.name === "AbortError")) {
+        vscode.window.showWarningMessage(`Professor: não consegui gerar a dica — ${String(e)}`);
+      }
     }
   }
 

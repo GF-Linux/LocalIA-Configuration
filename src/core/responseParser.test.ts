@@ -12,6 +12,18 @@ describe("parseHint", () => {
       .toEqual({ comment: "c", why: "w", nudge: "n" });
   });
 
+  it("inclui suggestion quando presente", () => {
+    const h = parseHint('{"comment":"c","why":"w","nudge":"n","suggestion":"with open(f) as fh:"}');
+    expect(h).toEqual({ comment: "c", why: "w", nudge: "n", suggestion: "with open(f) as fh:" });
+  });
+
+  it("ignora suggestion vazia ou não-string", () => {
+    expect(parseHint('{"comment":"c","why":"w","nudge":"n","suggestion":"  "}'))
+      .toEqual({ comment: "c", why: "w", nudge: "n" });
+    expect(parseHint('{"comment":"c","why":"w","nudge":"n","suggestion":123}'))
+      .toEqual({ comment: "c", why: "w", nudge: "n" });
+  });
+
   it("retorna null em skip", () => {
     expect(parseHint('{"skip": true}')).toBeNull();
   });
