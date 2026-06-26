@@ -25,12 +25,21 @@ export class ProfessorViewProvider implements vscode.WebviewViewProvider {
     this.render(hint);
   }
 
+  // Fix 7: expose visibility so watcher can skip GPU work when panel is hidden
+  isVisible(): boolean {
+    return this.view?.visible ?? false;
+  }
+
   private render(hint: Hint | null): void {
     if (!this.view) return;
     const cssUri = this.view.webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, "media", "panel.css")
     );
+    // Fix 2: charset + CSP for a no-script webview that loads only its own stylesheet
+    const csp = this.view.webview.cspSource;
     this.view.webview.html = `<!DOCTYPE html><html><head>
+      <meta charset="utf-8">
+      <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${csp};">
       <link rel="stylesheet" href="${cssUri}"></head>
       <body>${renderHintHtml(hint, this.muted)}</body></html>`;
   }

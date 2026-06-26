@@ -27,4 +27,10 @@ describe("askOllama", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, status: 500 }));
     await expect(askOllama([], opts)).rejects.toThrow(/500/);
   });
+
+  it("propaga rejeição do fetch (ex: AbortError por timeout)", async () => {
+    const timeoutError = new DOMException("signal timed out", "TimeoutError");
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(timeoutError));
+    await expect(askOllama([], opts)).rejects.toThrow("signal timed out");
+  });
 });
