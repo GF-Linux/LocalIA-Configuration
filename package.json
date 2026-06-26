@@ -7,7 +7,18 @@
   "engines": { "vscode": "^1.90.0" },
   "main": "./dist/extension.js",
   "activationEvents": ["onStartupFinished"],
-  "contributes": {},
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "professor", "title": "Professor", "icon": "media/icon.svg" }
+      ]
+    },
+    "views": {
+      "professor": [
+        { "type": "webview", "id": "professor.view", "name": "Professor" }
+      ]
+    }
+  },
   "scripts": {
     "compile": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
