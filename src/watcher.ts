@@ -75,7 +75,7 @@ export class Watcher {
         model: cfg.get<string>("model", "qwen3:14b"),
         signal: this.abort.signal,
       });
-      this.panel.update(parseHint(raw)); // null => painel fica quieto (fail-quiet)
+      this.panel.update(parseHint(raw), force); // null => painel fica quieto (fail-quiet)
     } catch {
       // erro de rede/Ollama: silencioso, nunca interrompe o usuário
     }

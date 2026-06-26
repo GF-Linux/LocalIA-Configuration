@@ -20,8 +20,8 @@ export class ProfessorViewProvider implements vscode.WebviewViewProvider {
     this.render(null);
   }
 
-  update(hint: Hint | null): void {
-    if (this.muted) return;
+  update(hint: Hint | null, force = false): void {
+    if (!force && this.muted) return;
     this.render(hint);
   }
 
