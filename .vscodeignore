@@ -1,0 +1,7 @@
+src/**
+node_modules/**
+**/*.test.ts
+vitest.config.ts
+esbuild.mjs
+tsconfig.json
+docs/**
