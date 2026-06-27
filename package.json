@@ -32,7 +32,8 @@
     },
     "commands": [
       { "command": "professor.toggleMute", "title": "Professor: Alternar mudo" },
-      { "command": "professor.commentNow", "title": "Professor: Comentar agora" }
+      { "command": "professor.commentNow", "title": "Professor: Comentar agora" },
+      { "command": "professor.setIntent", "title": "Professor: Definir intenção (Projeto/Treino/Livre)" }
     ]
   },
   "scripts": {
