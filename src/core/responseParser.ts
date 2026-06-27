@@ -4,6 +4,7 @@ export type Hint = {
   nudge: string;
   /** Optional idiomatic code snippet illustrating the fix. */
   suggestion?: string;
+  source?: { title: string; url: string };
 };
 
 export function parseHint(raw: string): Hint | null {
@@ -26,6 +27,10 @@ export function parseHint(raw: string): Hint | null {
   const hint: Hint = { comment: obj.comment, why: obj.why, nudge: obj.nudge };
   if (typeof obj.suggestion === "string" && obj.suggestion.trim()) {
     hint.suggestion = obj.suggestion;
+  }
+  const s = obj.source;
+  if (s && typeof s.title === "string" && typeof s.url === "string") {
+    hint.source = { title: s.title, url: s.url };
   }
   return hint;
 }
