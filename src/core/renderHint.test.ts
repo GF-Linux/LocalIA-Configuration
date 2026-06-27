@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { renderHintHtml } from "./renderHint";
+import { renderHintHtml, renderPanoramaHtml } from "./renderHint";
 
 describe("renderHintHtml", () => {
   it("mostra comment/why/nudge da dica", () => {
@@ -44,5 +44,34 @@ describe("renderHintHtml", () => {
   it("não renderiza bloco de código sem suggestion", () => {
     const html = renderHintHtml({ comment: "c", why: "w", nudge: "n" }, false);
     expect(html).not.toContain("<pre>");
+  });
+
+  it("renderiza a fonte do StackOverflow quando há source", () => {
+    const html = renderHintHtml(
+      { comment: "c", why: "w", nudge: "n", source: { title: "Reading files", url: "questions/1" } },
+      false
+    );
+    expect(html).toContain("📚");
+    expect(html).toContain("Reading files");
+  });
+
+  it("escapa HTML da fonte (XSS)", () => {
+    const html = renderHintHtml(
+      { comment: "c", why: "w", nudge: "n", source: { title: "<script>x</script>", url: "u" } },
+      false
+    );
+    expect(html).not.toContain("<script>x");
+  });
+});
+
+describe("renderPanoramaHtml", () => {
+  it("renderPanoramaHtml mostra structure e next", () => {
+    const html = renderPanoramaHtml({ structure: "S1", next: "N1" });
+    expect(html).toContain("S1");
+    expect(html).toContain("N1");
+  });
+
+  it("renderPanoramaHtml vazio quando null", () => {
+    expect(renderPanoramaHtml(null)).toBe("");
   });
 });
