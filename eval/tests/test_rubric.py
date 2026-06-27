@@ -29,6 +29,15 @@ def test_parse_verdict_rejects_missing_key():
 def test_parse_verdict_rejects_garbage():
     assert parse_verdict("não é json") is None
 
+def test_parse_verdict_rejects_bool_score():
+    # True == 1 in Python; a bool must NOT be accepted as a score
+    raw = '{"scores": {"socratic":true,"why":4,"concision":3,"relevance":5,"correctness":4}, "rationale":"r"}'
+    assert parse_verdict(raw) is None
+
+def test_parse_verdict_rejects_below_range():
+    raw = '{"scores": {"socratic":0,"why":4,"concision":3,"relevance":5,"correctness":4}, "rationale":"r"}'
+    assert parse_verdict(raw) is None
+
 def test_score_quality_aggregates_valid_only():
     items = [({"code": "a", "lang": "python"}, "h1"),
              ({"code": "b", "lang": "python"}, "h2")]
