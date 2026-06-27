@@ -78,6 +78,7 @@ export class Watcher {
 
     this.abort?.abort();
     this.abort = new AbortController();
+    const signal = this.abort.signal;
     try {
       const intent = getIntent(this.context);
 
@@ -88,7 +89,7 @@ export class Watcher {
           url: cfg.get<string>("ollamaUrl", "http://localhost:11434"),
           model: cfg.get<string>("queryModel", "qwen2.5-coder:1.5b"),
           timeoutMs: 20000,
-          signal: this.abort.signal,
+          signal,
         });
         query = cleanQuery(rawQuery);
       } catch { /* cai no fallback abaixo */ }
@@ -98,7 +99,7 @@ export class Watcher {
       const sources = await fetchRetrieval(query, {
         url: cfg.get<string>("retrievalUrl", "http://localhost:8765"),
         k: 3,
-        signal: this.abort.signal,
+        signal,
       });
 
       // 3) ensino fundamentado
@@ -106,7 +107,7 @@ export class Watcher {
         url: cfg.get<string>("ollamaUrl", "http://localhost:11434"),
         model: cfg.get<string>("model", "qwen3:14b"),
         timeoutMs: cfg.get<number>("timeoutSeconds", 120) * 1000,
-        signal: this.abort.signal,
+        signal,
       });
       this.panel.update(parseHint(raw), force);
     } catch (e) {
@@ -128,6 +129,7 @@ export class Watcher {
     const cd = cfg.get<number>("panoramaCooldownSeconds", 60) * 1000;
     if (!force && Date.now() - this.lastPanoramaMs < cd) return;
     this.lastPanoramaMs = Date.now();
+    if (!force && !this.panel.isVisible()) return;
     const outline = extractOutline(editor.document.getText());
     if (!outline.trim()) return;
     try {
