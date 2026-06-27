@@ -1,4 +1,4 @@
-from evallib.score import compute_gates, verdict, GATE_THRESHOLDS
+from evallib.score import compute_gates, verdict, GATE_THRESHOLDS, format_report
 
 _PASS = {
     "format": {"ft": 0.97, "base": 0.99},
@@ -42,3 +42,27 @@ def test_g3_selectivity_below_half_fails():
 def test_thresholds_constant():
     assert GATE_THRESHOLDS["format_min"] == 0.95
     assert GATE_THRESHOLDS["code_eps"] == 0.05
+
+def test_format_report_returns_str_with_verdict():
+    g = compute_gates(_PASS)
+    out = format_report(_PASS, g)
+    assert isinstance(out, str)
+    assert "PROMOVER" in out
+
+def test_g3_zero_total_fails_no_crash():
+    r = {**_PASS, "selectivity": {"correct": 0, "total": 0}}
+    assert compute_gates(r)["G3"] is False  # guard: no ZeroDivisionError
+
+def test_g0_at_threshold_passes():
+    r = {**_PASS, "format": {"ft": 0.95, "base": 0.99}}
+    assert compute_gates(r)["G0"] is True
+
+def test_g2_exact_epsilon_boundary_passes():
+    # ft = base - 0.05 exactly -> must pass (inclusive boundary).
+    # Verified: 0.69 >= 0.74 - 0.05 is True in CPython float (no rounding hazard).
+    r = {**_PASS, "code": {"ft": 0.69, "base": 0.74}}
+    assert compute_gates(r)["G2"] is True
+
+def test_g3_exactly_half_passes():
+    r = {**_PASS, "selectivity": {"correct": 4, "total": 8}}
+    assert compute_gates(r)["G3"] is True
