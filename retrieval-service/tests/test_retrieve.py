@@ -30,3 +30,35 @@ def test_retrieve_clamps_k(tiny_zim, monkeypatch):
     client = TestClient(main.app)
     r = client.get("/retrieve", params={"q": "python", "k": 999})
     assert r.status_code == 200  # k acima do máximo não quebra
+
+def test_retrieve_failsafe_never_500(monkeypatch):
+    """Fail-safe returns 200 + [] when search raises."""
+    import app.main as main
+    class _Boom:
+        def search(self, *a, **k):
+            raise RuntimeError("zim exploded")
+    monkeypatch.setattr(main, "_get_search", lambda: _Boom())
+    from fastapi.testclient import TestClient
+    client = TestClient(main.app)
+    r = client.get("/retrieve", params={"q": "python", "k": 3})
+    assert r.status_code == 200
+    assert r.json() == []
+
+def test_retrieve_whitespace_q_returns_empty(monkeypatch):
+    """Whitespace-only q returns [] without touching zim."""
+    import app.main as main
+    from fastapi.testclient import TestClient
+    client = TestClient(main.app)
+    # Three spaces encoded as %20%20%20
+    r = client.get("/retrieve", params={"q": "   ", "k": 3})
+    assert r.status_code == 200
+    assert r.json() == []
+
+def test_retrieve_clamps_k_lower_bound(tiny_zim, monkeypatch):
+    """Lower-bound k clamp: k=0 clamped to 1, no crash."""
+    import app.main as main
+    monkeypatch.setattr(main, "_get_search", lambda: ZimSearch(tiny_zim))
+    from fastapi.testclient import TestClient
+    client = TestClient(main.app)
+    r = client.get("/retrieve", params={"q": "python", "k": 0})
+    assert r.status_code == 200  # k=0 clamped to 1, no crash
