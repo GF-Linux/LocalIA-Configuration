@@ -5,3 +5,5 @@ data/*.jsonl
 outputs/
 *.gguf
 hf_cache/
+unsloth_compiled_cache/
+.pytest_cache/
