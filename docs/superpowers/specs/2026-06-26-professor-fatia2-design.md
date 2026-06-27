@@ -80,6 +80,10 @@ testável isolada.
 1. **retrieval-service** (Python/FastAPI): abre o `.zim` com `python-libzim`, expõe
    `GET /retrieve?q=&k=` → `[{title, url, snippet}]`. Busca full-text; extrai um
    snippet curto em volta do match. Saúde em `GET /health`. Testável com `curl`.
+   Motor de busca: `python-libzim` (`Query().set_query(...)` + `Searcher(zim).search(query)`
+   + `search.getResults(0, n)` + `getEstimatedMatches()`). A lógica de snippet/citação
+   pode ser adaptada do `llm-tools-kiwix` (Apache-2.0; é biblioteca/CLI, não servidor —
+   embrulhamos numa FastAPI própria, no padrão do ankivet).
 
 ### Extensão (subsistema 2 — plano próprio)
 2. **queryExtractor** (puro + 1 chamada ao modelo pequeno): código → string de busca
@@ -153,6 +157,20 @@ Dois planos de implementação, um spec:
   prompt + source, intenção, outline, panorama, painel em duas seções).
 
 Cada plano produz software funcionando e testável por si.
+
+## 11b. Reaproveitamento de open-source (validado via GitHub)
+
+| Peça | Projeto | Licença | Uso |
+|---|---|---|---|
+| Busca full-text no `.zim` | [python-libzim](https://github.com/openzim/python-libzim) | permissiva (openZIM) | Motor de busca do retrieval-service (`Query`/`Searcher`/`Search`) |
+| Snippet/citação sobre `.zim` | [llm-tools-kiwix](https://github.com/mozanunal/llm-tools-kiwix) | Apache-2.0 | Referência de código (é lib/CLI, não servidor — embrulhar em FastAPI própria) |
+| RAG vetorial (Fatia futura) | [zim-llm](https://github.com/rouralberto/zim-llm) | a confirmar | Referência da fase vetorial (MiniLM + Chroma, pré-computa embeddings) |
+| Scaffold webview | vscode-extension-samples | MIT | Já usado na Fatia 1 |
+| LLMs | Ollama (Qwen3 14B + qwen2.5-coder:1.5b) | — | Já instalados |
+
+Nenhum desses é dependência de runtime "pesada": `python-libzim` é o único pip novo no
+servidor; o `llm-tools-kiwix` entra como referência de código (Apache-2.0), não como
+dependência. O `zim-llm` só importa quando/se formos pro RAG vetorial.
 
 ## 12. Questões em aberto
 
