@@ -1,4 +1,4 @@
-const STRUCT = /^\s*(import |from |export |def |class |function |const |public |private )/;
+const STRUCT = /^\s*(import |from |export |def |class |function |const |public |private |let |var |type |interface |async |func )/;
 
 export function extractOutline(text: string, maxLines = 120): string {
   const lines = text.split("\n");

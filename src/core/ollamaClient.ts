@@ -2,7 +2,7 @@ import type { ChatMessage } from "./promptBuilder";
 
 export async function askOllama(
   messages: ChatMessage[],
-  opts: { url: string; model: string; signal?: AbortSignal; timeoutMs?: number }
+  opts: { url: string; model: string; signal?: AbortSignal; timeoutMs?: number; json?: boolean }
 ): Promise<string> {
   // Fix 6: combine caller signal with a timeout so a hung Ollama self-recovers.
   // Node 24 supports AbortSignal.any() and AbortSignal.timeout().
@@ -19,7 +19,7 @@ export async function askOllama(
       model: opts.model,
       messages,
       stream: false,
-      format: "json",
+      ...(opts.json !== false && { format: "json" }),
     }),
     signal,
   });

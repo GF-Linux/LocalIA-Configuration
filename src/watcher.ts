@@ -90,6 +90,7 @@ export class Watcher {
           model: cfg.get<string>("queryModel", "qwen2.5-coder:1.5b"),
           timeoutMs: 20000,
           signal,
+          json: false,
         });
         query = cleanQuery(rawQuery);
       } catch { /* cai no fallback abaixo */ }

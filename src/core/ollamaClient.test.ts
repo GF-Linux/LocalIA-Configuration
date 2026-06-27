@@ -33,4 +33,21 @@ describe("askOllama", () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(timeoutError));
     await expect(askOllama([], opts)).rejects.toThrow("signal timed out");
   });
+
+  it("omite format quando json:false (plain-text query)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ message: { content: "typescript generics" } }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const out = await askOllama([{ role: "user", content: "extrai keywords" }], {
+      ...opts,
+      json: false,
+    });
+    expect(out).toBe("typescript generics");
+    const [, init] = fetchMock.mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body.format).toBeUndefined();
+  });
 });

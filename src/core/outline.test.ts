@@ -15,4 +15,12 @@ describe("extractOutline", () => {
     expect(out).toContain("def bar():");
     expect(out).not.toContain("x = 150");
   });
+
+  it("arquivo grande: captura interface e type (TS)", () => {
+    const filler = Array.from({ length: 130 }, (_, i) => `  // linha ${i}`).join("\n");
+    const text = `${filler}\ninterface Foo {\n  x: number;\n}\ntype Bar = string | number;\n${filler}`;
+    const out = extractOutline(text, 120);
+    expect(out).toContain("interface Foo {");
+    expect(out).toContain("type Bar = string | number;");
+  });
 });
