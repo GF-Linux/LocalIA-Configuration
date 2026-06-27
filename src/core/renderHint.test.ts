@@ -61,6 +61,7 @@ describe("renderHintHtml", () => {
       false
     );
     expect(html).not.toContain("<script>x");
+    expect(html).toContain("&lt;script&gt;");
   });
 });
 
@@ -73,5 +74,11 @@ describe("renderPanoramaHtml", () => {
 
   it("renderPanoramaHtml vazio quando null", () => {
     expect(renderPanoramaHtml(null)).toBe("");
+  });
+
+  it("escapa HTML no panorama (XSS)", () => {
+    const html = renderPanoramaHtml({ structure: "<script>x</script>", next: "<b>n</b>" });
+    expect(html).not.toContain("<script>x");
+    expect(html).toContain("&lt;script&gt;");
   });
 });
