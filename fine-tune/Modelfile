@@ -1,0 +1,3 @@
+FROM ./outputs/professor-ft.gguf
+PARAMETER temperature 0.3
+PARAMETER num_ctx 2048
