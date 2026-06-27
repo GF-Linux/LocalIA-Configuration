@@ -11,6 +11,8 @@ $env:PROFESSOR_ZIM_PATH = "C:\acervo-llm\kiwix\stackoverflow.com_en_all_2023-11.
 .\serve.ps1            # http://0.0.0.0:8765
 ```
 
+Requer libzim ≥ 3.10 (o fixture de teste usa `Hint.FRONT_ARTICLE`, introduzido no 3.10).
+
 ## API
 
 - `GET /health` → `{"status":"ok","zim_loaded":true}`

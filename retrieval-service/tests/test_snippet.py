@@ -7,7 +7,7 @@ def test_extract_snippet_centers_on_query_term():
     text = "A" * 300 + " usar with open para arquivos " + "B" * 300
     snip = extract_snippet(text, "with open", max_chars=60)
     assert "with open" in snip
-    assert len(snip) <= 60 + 1  # tolera reticências
+    assert len(snip) <= 60
 
 def test_extract_snippet_falls_back_to_start():
     text = "comeco do texto sem o termo procurado aqui"
