@@ -1,17 +1,26 @@
 import * as vscode from "vscode";
 import { TriggerState, initialTriggerState, decideTrigger, hashCode } from "./core/triggerPolicy";
 import { extractContext } from "./core/contextCollector";
-import { buildTutorMessages } from "./core/promptBuilder";
 import { askOllama } from "./core/ollamaClient";
 import { parseHint } from "./core/responseParser";
 import { ProfessorViewProvider } from "./panel";
+import { buildQueryMessages, cleanQuery, heuristicQuery } from "./core/queryExtractor";
+import { fetchRetrieval } from "./core/retrievalClient";
+import { buildGroundedTutorMessages } from "./core/groundedPromptBuilder";
+import { extractOutline } from "./core/outline";
+import { buildPanoramaMessages, parsePanorama } from "./core/panorama";
+import { getIntent } from "./intentStore";
 
 export class Watcher {
   private state: TriggerState = initialTriggerState();
   private timer: ReturnType<typeof setTimeout> | undefined;
   private abort: AbortController | undefined;
+  private lastPanoramaMs = -Infinity;
 
-  constructor(private readonly panel: ProfessorViewProvider) {}
+  constructor(
+    private readonly panel: ProfessorViewProvider,
+    private readonly context: vscode.ExtensionContext
+  ) {}
 
   private cfg() {
     return vscode.workspace.getConfiguration("professor");
@@ -69,14 +78,39 @@ export class Watcher {
 
     this.abort?.abort();
     this.abort = new AbortController();
+    const signal = this.abort.signal;
     try {
-      const raw = await askOllama(buildTutorMessages(ctx), {
+      const intent = getIntent(this.context);
+
+      // 1) query de busca (modelo pequeno, fail-quiet → heurística)
+      let query = "";
+      try {
+        const rawQuery = await askOllama(buildQueryMessages(ctx), {
+          url: cfg.get<string>("ollamaUrl", "http://localhost:11434"),
+          model: cfg.get<string>("queryModel", "qwen2.5-coder:1.5b"),
+          timeoutMs: 20000,
+          signal,
+          json: false,
+        });
+        query = cleanQuery(rawQuery);
+      } catch { /* cai no fallback abaixo */ }
+      if (!query) query = heuristicQuery(ctx.code, ctx.lang);
+
+      // 2) busca no StackOverflow (fail-quiet → [])
+      const sources = await fetchRetrieval(query, {
+        url: cfg.get<string>("retrievalUrl", "http://localhost:8765"),
+        k: 3,
+        signal,
+      });
+
+      // 3) ensino fundamentado
+      const raw = await askOllama(buildGroundedTutorMessages(ctx, sources, intent), {
         url: cfg.get<string>("ollamaUrl", "http://localhost:11434"),
         model: cfg.get<string>("model", "qwen3:14b"),
         timeoutMs: cfg.get<number>("timeoutSeconds", 120) * 1000,
-        signal: this.abort.signal,
+        signal,
       });
-      this.panel.update(parseHint(raw), force); // null => painel fica quieto (fail-quiet)
+      this.panel.update(parseHint(raw), force);
     } catch (e) {
       // Fail-quiet para o auto path; mas um comando explícito do usuário merece feedback
       // de erro (senão "Comentar agora" parece não fazer nada). AbortError de uma chamada
@@ -85,6 +119,31 @@ export class Watcher {
         vscode.window.showWarningMessage(`Professor: não consegui gerar a dica — ${String(e)}`);
       }
     }
+  }
+
+  /** Gera o panorama do arquivo ativo (estrutura + próximo passo). Tem cooldown próprio.
+   *  force=true: bypass cooldown (comando explícito). */
+  async panoramaNow(force = false): Promise<void> {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) return;
+    const cfg = this.cfg();
+    const cd = cfg.get<number>("panoramaCooldownSeconds", 60) * 1000;
+    if (!force && Date.now() - this.lastPanoramaMs < cd) return;
+    if (!force && !this.panel.isVisible()) return;
+    this.lastPanoramaMs = Date.now();
+    const outline = extractOutline(editor.document.getText());
+    if (!outline.trim()) return;
+    try {
+      const raw = await askOllama(
+        buildPanoramaMessages(outline, editor.document.languageId, getIntent(this.context)),
+        {
+          url: cfg.get<string>("ollamaUrl", "http://localhost:11434"),
+          model: cfg.get<string>("model", "qwen3:14b"),
+          timeoutMs: cfg.get<number>("timeoutSeconds", 120) * 1000,
+        }
+      );
+      this.panel.updatePanorama(parsePanorama(raw));
+    } catch { /* fail-quiet */ }
   }
 
   dispose(): void {

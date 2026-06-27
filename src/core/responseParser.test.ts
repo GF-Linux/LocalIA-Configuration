@@ -35,4 +35,16 @@ describe("parseHint", () => {
   it("retorna null se faltar campo", () => {
     expect(parseHint('{"comment":"c"}')).toBeNull();
   });
+
+  it("inclui source quando presente e válido", () => {
+    const h = parseHint('{"comment":"c","why":"w","nudge":"n","source":{"title":"T","url":"U"}}');
+    expect(h).toEqual({ comment: "c", why: "w", nudge: "n", source: { title: "T", url: "U" } });
+  });
+
+  it("ignora source inválido", () => {
+    expect(parseHint('{"comment":"c","why":"w","nudge":"n","source":{"title":"T"}}'))
+      .toEqual({ comment: "c", why: "w", nudge: "n" });
+    expect(parseHint('{"comment":"c","why":"w","nudge":"n","source":"x"}'))
+      .toEqual({ comment: "c", why: "w", nudge: "n" });
+  });
 });

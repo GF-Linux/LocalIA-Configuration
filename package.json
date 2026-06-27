@@ -27,12 +27,17 @@
         "professor.debounceMs": { "type": "number", "default": 1500 },
         "professor.maxContextLines": { "type": "number", "default": 30 },
         "professor.timeoutSeconds": { "type": "number", "default": 120 },
-        "professor.muted": { "type": "boolean", "default": false }
+        "professor.muted": { "type": "boolean", "default": false },
+        "professor.retrievalUrl": { "type": "string", "default": "http://localhost:8765" },
+        "professor.queryModel": { "type": "string", "default": "qwen2.5-coder:1.5b" },
+        "professor.panoramaCooldownSeconds": { "type": "number", "default": 60 }
       }
     },
     "commands": [
       { "command": "professor.toggleMute", "title": "Professor: Alternar mudo" },
-      { "command": "professor.commentNow", "title": "Professor: Comentar agora" }
+      { "command": "professor.commentNow", "title": "Professor: Comentar agora" },
+      { "command": "professor.setIntent", "title": "Professor: Definir intenção (Projeto/Treino/Livre)" },
+      { "command": "professor.panorama", "title": "Professor: Panorama (estrutura + próximo passo)" }
     ]
   },
   "scripts": {

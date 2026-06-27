@@ -12,3 +12,7 @@ body { font-family: var(--vscode-font-family); padding: 10px; color: var(--vscod
   font-family: var(--vscode-editor-font-family, monospace);
   font-size: 0.95em; white-space: pre;
 }
+.hint .source { margin-top: 8px; opacity: 0.85; font-size: 0.9em; }
+.panorama { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--vscode-widget-border, rgba(127,127,127,0.3)); }
+.panorama .pano-title { font-weight: bold; margin-bottom: 6px; }
+.panorama .structure, .panorama .next { margin-top: 4px; opacity: 0.95; }
