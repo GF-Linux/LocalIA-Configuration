@@ -19,13 +19,12 @@ def extract_snippet(text: str, query: str, max_chars: int = 240) -> str:
         snip = text[:max_chars]
         return snip + ("…" if len(text) > max_chars else "")
     start = max(0, pos - max_chars // 3)
-    end = min(len(text), start + max_chars)
-    snip = text[start:end]
-    if start > 0:
-        snip = "…" + snip
-    if end < len(text):
-        snip = snip + "…"
-    # Trim if exceeds tolerance to stay within max_chars + 1
-    if len(snip) > max_chars + 1:
-        snip = snip[:max_chars + 1]
-    return snip
+    lead = "…" if start > 0 else ""
+    # reserve room for the leading and (possible) trailing ellipsis
+    budget = max_chars - len(lead)
+    end = min(len(text), start + budget)
+    trail = "…" if end < len(text) else ""
+    # if a trailing ellipsis is needed, shrink the window by 1 more to make room
+    if trail and end == start + budget:
+        end -= 1
+    return lead + text[start:end] + trail
