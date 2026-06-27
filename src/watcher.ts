@@ -128,8 +128,8 @@ export class Watcher {
     const cfg = this.cfg();
     const cd = cfg.get<number>("panoramaCooldownSeconds", 60) * 1000;
     if (!force && Date.now() - this.lastPanoramaMs < cd) return;
-    this.lastPanoramaMs = Date.now();
     if (!force && !this.panel.isVisible()) return;
+    this.lastPanoramaMs = Date.now();
     const outline = extractOutline(editor.document.getText());
     if (!outline.trim()) return;
     try {
