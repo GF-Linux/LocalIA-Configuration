@@ -56,7 +56,9 @@ CSN_LANGS = ("python", "java", "javascript", "go", "php", "ruby")
 def iter_code_search_net(langs=CSN_LANGS, limit_per_lang: int = 2000):
     from datasets import load_dataset
     for lang in langs:
-        ds = load_dataset("code_search_net", lang, split="train",
+        # HF Hub exige id namespaced; o nome legado "code_search_net" quebra
+        # (mesma classe do fix do humaneval na B1).
+        ds = load_dataset("code-search-net/code_search_net", lang, split="train",
                           streaming=True, trust_remote_code=True)
         k = 0
         for row in ds:
