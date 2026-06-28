@@ -148,6 +148,10 @@ def main(argv=None):
     ap.add_argument("--qa", type=int, default=20)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--workers", type=int, default=8, help="chamadas GLM concorrentes na escala")
+    ap.add_argument("--reasoning", action="store_true",
+                    help="liga o reasoning do GLM (mais lento/caro, qualidade maior)")
+    ap.add_argument("--max-tokens", type=int, default=512,
+                    help="cap de tokens de saída (use ~2048 com --reasoning p/ não truncar)")
     a = ap.parse_args(argv)
 
     # Pré-flight: a QA usa o juiz Claude (_judge_ask -> ANTHROPIC_API_KEY + SDK anthropic).
@@ -181,7 +185,8 @@ def main(argv=None):
 
     if a.pilot:
         budget = Budget(ceiling_usd=1e9, price=GLM52_PRICE)
-        ask = make_glm_ask(GLM_MODEL, on_usage=budget.charge)
+        ask = make_glm_ask(GLM_MODEL, on_usage=budget.charge,
+                           max_tokens=a.max_tokens, reasoning_enabled=a.reasoning)
         valids = run_generation(items[:a.pilot], ask, budget, a.kind)
         proj = pilot_projection(budget, len(valids), ceiling)
         report = {"mode": "pilot", "kind": a.kind, "projection": proj,
@@ -206,7 +211,8 @@ def main(argv=None):
         with charge_lock:
             budget.charge(usage)
 
-    ask = make_glm_ask(GLM_MODEL, on_usage=_locked_charge)
+    ask = make_glm_ask(GLM_MODEL, on_usage=_locked_charge,
+                       max_tokens=a.max_tokens, reasoning_enabled=a.reasoning)
     existing_rows, fresh = scale_concurrent(
         items, ask, budget, a.kind, out_path,
         workers=a.workers, max_skip_ratio=a.max_skip_ratio,
