@@ -54,20 +54,24 @@ def make_glm_ask(model: str = GLM_MODEL, *, url: str = OPENROUTER_URL,
         body = build_body(model, messages)
         last = None
         for attempt in range(retries):
+            err = None
             try:
                 status, resp = transport(url, body)
             except urllib.error.HTTPError as e:
-                status, resp, last = e.code, None, e
+                status, resp, err = e.code, None, e
             if resp is not None and status == 200:
                 content, usage = parse_completion(resp)
                 if on_usage:
                     on_usage(usage)
                 return content
+            # Preserve the original HTTPError (with its body/reason) when present;
+            # only fall back to a blander RuntimeError for status-only failures.
+            last = err or RuntimeError(f"status {status}")
             if _is_retryable(status):
-                last = RuntimeError(f"status {status}")
                 sleep(backoff * (2 ** attempt))
                 continue
-            raise RuntimeError(f"OpenRouter status {status}: {resp}")
+            detail = getattr(last, "reason", None) or resp
+            raise RuntimeError(f"OpenRouter status {status}: {detail}")
         raise RuntimeError(f"OpenRouter falhou após {retries} tentativas: {last}")
 
     return ask

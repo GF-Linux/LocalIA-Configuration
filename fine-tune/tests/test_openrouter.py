@@ -1,4 +1,3 @@
-import os
 import pytest
 from datagen.openrouter import build_body, parse_completion, make_glm_ask, GLM_MODEL, OPENROUTER_URL
 
@@ -57,3 +56,16 @@ def test_ask_gives_up_after_retries(monkeypatch):
     ask = make_glm_ask(transport=transport, retries=3, sleep=lambda s: None)
     with pytest.raises(RuntimeError, match="após 3 tentativas"):
         ask([{"role": "user", "content": "q"}])
+
+def test_ask_non_retryable_raises_immediately(monkeypatch):
+    monkeypatch.setenv("OPENROUTER_API_KEY", "k")
+    calls = {"n": 0}
+    slept = []
+    def transport(url, body):
+        calls["n"] += 1
+        return 400, {"error": {"message": "bad request"}}
+    ask = make_glm_ask(transport=transport, sleep=slept.append)
+    with pytest.raises(RuntimeError, match="status 400"):
+        ask([{"role": "user", "content": "q"}])
+    assert calls["n"] == 1
+    assert slept == []
