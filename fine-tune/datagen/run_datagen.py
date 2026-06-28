@@ -86,14 +86,22 @@ def main(argv=None):
     ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args(argv)
 
-    # Pré-flight: a QA usa o juiz Claude (_judge_ask -> ANTHROPIC_API_KEY). Falhe ANTES
-    # de gastar dinheiro no GLM se a chave estiver ausente. (OPENROUTER_API_KEY já é
-    # validada cedo por make_glm_ask.)
-    if a.kind == "hint" and a.qa > 0 and not os.environ.get("ANTHROPIC_API_KEY"):
-        raise RuntimeError(
-            "ANTHROPIC_API_KEY ausente: a QA (juiz Claude) rodaria após a geração e "
-            "abortaria depois de gastar no GLM. Defina ANTHROPIC_API_KEY ou rode com --qa 0."
-        )
+    # Pré-flight: a QA usa o juiz Claude (_judge_ask -> ANTHROPIC_API_KEY + SDK anthropic).
+    # Falhe ANTES de gastar dinheiro no GLM se a chave OU o SDK estiverem ausentes.
+    # (OPENROUTER_API_KEY já é validada cedo por make_glm_ask.)
+    if a.kind == "hint" and a.qa > 0:
+        import importlib.util
+        if not os.environ.get("ANTHROPIC_API_KEY"):
+            raise RuntimeError(
+                "ANTHROPIC_API_KEY ausente: a QA (juiz Claude) rodaria após a geração e "
+                "abortaria depois de gastar no GLM. Defina ANTHROPIC_API_KEY ou rode com --qa 0."
+            )
+        if importlib.util.find_spec("anthropic") is None:
+            raise RuntimeError(
+                "Pacote 'anthropic' não instalado neste venv: a QA (juiz Claude) abortaria "
+                "após gastar no GLM. Instale 'anthropic' (ex.: pip install anthropic==0.69.0) "
+                "ou rode com --qa 0."
+            )
 
     ceiling = a.budget if a.budget > 0 else 4.0
 
