@@ -69,7 +69,7 @@ def main():
 
     # T3 — regressão de código (HumanEval subset)
     from datasets import load_dataset
-    ds = load_dataset("openai_humaneval", split="test")
+    ds = load_dataset("openai/openai_humaneval", split="test")
     wanted = set(load_subset_ids("data/humaneval_subset.txt"))
     problems = [r for r in ds if r["task_id"] in wanted]
     code_ft = _code_pass_at_1(a.ft, problems)

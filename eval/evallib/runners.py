@@ -15,7 +15,7 @@ def make_ollama_ask(model: str, url: str = "http://localhost:11434"):
                            "options": {"temperature": 0}}).encode()
         req = urllib.request.Request(f"{url}/api/chat", data=body,
                                      headers={"Content-Type": "application/json"})
-        with urllib.request.urlopen(req, timeout=180) as resp:
+        with urllib.request.urlopen(req, timeout=600) as resp:
             return json.loads(resp.read())["message"]["content"]
     return ask
 
