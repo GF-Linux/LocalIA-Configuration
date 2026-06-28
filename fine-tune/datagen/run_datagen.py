@@ -3,6 +3,8 @@
 import argparse
 import json
 import os
+import sys
+import threading
 
 from datagen.budget import Budget, project_total, GLM52_PRICE
 from datagen.generate import generate_one
@@ -67,6 +69,67 @@ def _load_existing(path):
         return [json.loads(l) for l in f if l.strip()]
 
 
+def scale_concurrent(items, ask, budget, kind, out_path, *, workers=8,
+                     max_skip_ratio=0.3, progress_every=25):
+    """Escala com chamadas CONCORRENTES (GLM 5.2 é ~4s/call -> paraleliza p/ minutos,
+    não horas), persistência INCREMENTAL (append+flush por linha -> crash-safe e
+    retomável; dá pra ver o arquivo crescer) e dedup/balance online.
+
+    `ask` deve ter `on_usage` já encadeado a um charge THREAD-SAFE (lock externo).
+    Para limpo quando `budget.over()`. Retorna (existing_rows, fresh)."""
+    existing_rows = _load_existing(out_path)
+    seen = {_row_key(r) for r in existing_rows}
+    field = "hint" if kind == "hint" else "panorama"
+    fresh = []
+    lock = threading.Lock()
+    item_iter = iter(items)
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    fout = open(out_path, "a", encoding="utf-8")
+
+    def _is_skip(row):
+        return isinstance(row[field], dict) and row[field].get("skip") is True
+
+    def worker():
+        while True:
+            with lock:
+                if budget.over():
+                    return
+                item = next(item_iter, None)
+                # dedup PRÉ-geração: se o código/outline já está no arquivo (ou já saiu
+                # nesta run), pula SEM gastar uma chamada GLM (re-runs não pagam dup).
+                while item is not None and _row_key(item) in seen:
+                    item = next(item_iter, None)
+                if item is None:
+                    return
+                seen.add(_row_key(item))  # reserva a chave p/ não duplicar entre threads
+            row = generate_one(item, ask, kind)  # rede FORA do lock
+            if row is None:
+                continue  # parse/schema inválido (a chave fica reservada em `seen`)
+            with lock:
+                # a chave já foi reservada em `seen` antes da geração (dedup pré-call).
+                # balance online: só aceita um skip se mantiver a razão <= teto
+                if _is_skip(row):
+                    n_skip = sum(1 for r in fresh if _is_skip(r))
+                    if fresh and (n_skip + 1) / (len(fresh) + 1) > max_skip_ratio:
+                        continue
+                fresh.append(row)
+                fout.write(json.dumps(row, ensure_ascii=False) + "\n")
+                fout.flush()
+                if len(fresh) % progress_every == 0:
+                    print(f"[escala] {len(fresh)} válidos  spent=${budget.spent():.3f}",
+                          file=sys.stderr, flush=True)
+
+    try:
+        threads = [threading.Thread(target=worker) for _ in range(workers)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+    finally:
+        fout.close()
+    return existing_rows, fresh
+
+
 def main(argv=None):
     from datagen.openrouter import make_glm_ask, GLM_MODEL
     from datagen.codesource import (
@@ -84,6 +147,7 @@ def main(argv=None):
     ap.add_argument("--max-skip-ratio", type=float, default=0.3)
     ap.add_argument("--qa", type=int, default=20)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--workers", type=int, default=8, help="chamadas GLM concorrentes na escala")
     a = ap.parse_args(argv)
 
     # Pré-flight: a QA usa o juiz Claude (_judge_ask -> ANTHROPIC_API_KEY + SDK anthropic).
@@ -133,30 +197,27 @@ def main(argv=None):
 
     # escala — o teto real (ceiling, default $4) é sempre aplicado, senão um run sem
     # --budget geraria sobre a amostra inteira (n=10_000) sem freio de custo.
+    # Geração concorrente + persistência incremental (ver scale_concurrent). O charge
+    # do budget é serializado por um lock, pois várias threads o atualizam.
     budget = Budget(ceiling_usd=ceiling, price=GLM52_PRICE)
-    ask = make_glm_ask(GLM_MODEL, on_usage=budget.charge)
-    valids = run_generation(items, ask, budget, a.kind)
-    valids = dedup(valids)
-    # balance_by_ratio limita a razão de skip POR run; balanceamento cumulativo entre
-    # múltiplos runs de escala está fora do escopo (escala é single-run por kind).
-    if a.kind == "hint":
-        valids = balance_by_ratio(valids, lambda r: r["hint"].get("skip") is True,
-                                  a.max_skip_ratio, seed=a.seed)
-    else:
-        valids = balance_by_ratio(valids, lambda r: r["panorama"].get("skip") is True,
-                                  a.max_skip_ratio, seed=a.seed)
-    # dedup contínuo contra o que já existe — chaveado pelo código/outline normalizado
-    # (não pelo JSON da linha inteira, que muda a cada regeneração da anotação).
-    existing_rows = _load_existing(out_path)
-    fresh = dedup_against_existing(existing_rows, valids)
-    _append_jsonl(out_path, fresh)
+    charge_lock = threading.Lock()
+
+    def _locked_charge(usage):
+        with charge_lock:
+            budget.charge(usage)
+
+    ask = make_glm_ask(GLM_MODEL, on_usage=_locked_charge)
+    existing_rows, fresh = scale_concurrent(
+        items, ask, budget, a.kind, out_path,
+        workers=a.workers, max_skip_ratio=a.max_skip_ratio,
+    )
 
     report = {"mode": "scale", "kind": a.kind, "spent": round(budget.spent(), 4),
               "written": len(fresh), "total_now": len(existing_rows) + len(fresh),
-              "by_lang": counts_by(valids, lambda r: r["lang"]),
+              "by_lang": counts_by(fresh, lambda r: r["lang"]),
               "tokens": {"prompt": budget.prompt_tokens, "completion": budget.completion_tokens}}
-    if a.kind == "hint":
-        report["qa"] = qa_report(valids, _judge_ask(), n=a.qa, seed=a.seed)
+    if a.kind == "hint" and a.qa > 0:
+        report["qa"] = qa_report(fresh, _judge_ask(), n=a.qa, seed=a.seed)
     _write_report(report)
     print(json.dumps(report, ensure_ascii=False, indent=2))
 

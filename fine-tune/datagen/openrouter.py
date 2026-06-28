@@ -10,8 +10,18 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 GLM_MODEL = "z-ai/glm-5.2"
 
 
-def build_body(model: str, messages: list) -> dict:
-    return {"model": model, "messages": messages, "stream": False}
+def build_body(model: str, messages: list, *, max_tokens: int = 512,
+               reasoning_enabled: bool = False) -> dict:
+    # GLM 5.2 raciocina por padrão: a saída fica ~5x maior e ~3x mais lenta
+    # (medido no piloto: 14.5s vs 4.2s/call). Para dica/panorama (JSON curto) não
+    # precisamos de reasoning; desligamos e limitamos max_tokens p/ acelerar e baratear.
+    return {
+        "model": model,
+        "messages": messages,
+        "stream": False,
+        "max_tokens": max_tokens,
+        "reasoning": {"enabled": reasoning_enabled},
+    }
 
 
 def parse_completion(resp_json: dict):
@@ -39,7 +49,8 @@ def _is_retryable(status: int) -> bool:
 
 def make_glm_ask(model: str = GLM_MODEL, *, url: str = OPENROUTER_URL,
                  on_usage=None, transport=None, retries: int = 4,
-                 backoff: float = 2.0, sleep=time.sleep):
+                 backoff: float = 2.0, sleep=time.sleep,
+                 max_tokens: int = 512, reasoning_enabled: bool = False):
     key = os.environ.get("OPENROUTER_API_KEY")
     if not key:
         raise RuntimeError(
@@ -51,7 +62,8 @@ def make_glm_ask(model: str = GLM_MODEL, *, url: str = OPENROUTER_URL,
             return _urllib_transport(u, b, key)
 
     def ask(messages: list) -> str:
-        body = build_body(model, messages)
+        body = build_body(model, messages, max_tokens=max_tokens,
+                          reasoning_enabled=reasoning_enabled)
         last = None
         for attempt in range(retries):
             err = None
