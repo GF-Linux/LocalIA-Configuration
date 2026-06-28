@@ -82,6 +82,7 @@ def scale_concurrent(items, ask, budget, kind, out_path, *, workers=8,
     field = "hint" if kind == "hint" else "panorama"
     fresh = []
     lock = threading.Lock()
+    stop = threading.Event()  # erro não-recuperável (ex.: 402 sem crédito) para tudo limpo
     item_iter = iter(items)
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     fout = open(out_path, "a", encoding="utf-8")
@@ -90,7 +91,7 @@ def scale_concurrent(items, ask, budget, kind, out_path, *, workers=8,
         return isinstance(row[field], dict) and row[field].get("skip") is True
 
     def worker():
-        while True:
+        while not stop.is_set():
             with lock:
                 if budget.over():
                     return
@@ -102,7 +103,17 @@ def scale_concurrent(items, ask, budget, kind, out_path, *, workers=8,
                 if item is None:
                     return
                 seen.add(_row_key(item))  # reserva a chave p/ não duplicar entre threads
-            row = generate_one(item, ask, kind)  # rede FORA do lock
+            try:
+                row = generate_one(item, ask, kind)  # rede FORA do lock
+            except Exception as e:
+                # GLM falhou após retries (ex.: 402 Payment Required, esgotou crédito).
+                # Para TODAS as threads limpo — o que já foi salvo (incremental) persiste.
+                with lock:
+                    if not stop.is_set():
+                        print(f"[escala] parando: erro não-recuperável do GLM: "
+                              f"{str(e)[:120]}", file=sys.stderr, flush=True)
+                    stop.set()
+                return
             if row is None:
                 continue  # parse/schema inválido (a chave fica reservada em `seen`)
             with lock:
