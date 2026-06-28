@@ -1,4 +1,4 @@
-from datagen.run_datagen import run_generation, pilot_projection
+from datagen.run_datagen import run_generation, pilot_projection, dedup_against_existing
 from datagen.budget import Budget
 
 def _valid_hint_reply(msgs):
@@ -41,3 +41,22 @@ def test_pilot_projection_zero_valid_does_not_divide_by_zero():
     assert proj["n_valid"] == 0
     assert proj["per_valid"] == 0.0
     assert proj["projected_valid_for_ceiling"] == 0
+
+def test_dedup_against_existing_keys_on_code_not_full_row():
+    # mesma código (só difere whitespace) com hint DIFERENTE -> deve ser descartado.
+    existing = [{"code": "def f():\n  return 1", "lang": "python",
+                 "hint": {"comment": "anotação antiga"}}]
+    new = [
+        {"code": "def f():\n   return 1", "lang": "python",  # mesmo código, hint nova
+         "hint": {"comment": "anotação totalmente diferente"}},
+        {"code": "def g():\n  return 2", "lang": "python",
+         "hint": {"comment": "código novo"}},
+    ]
+    out = dedup_against_existing(existing, new)
+    assert len(out) == 1
+    assert out[0]["code"].startswith("def g")
+
+def test_dedup_against_existing_works_for_panorama_outline():
+    existing = [{"outline": "A  B  C", "lang": "python", "panorama": {"x": 1}}]
+    new = [{"outline": "A B C", "lang": "python", "panorama": {"x": 2}}]  # mesmo outline normalizado
+    assert dedup_against_existing(existing, new) == []

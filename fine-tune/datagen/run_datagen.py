@@ -6,6 +6,27 @@ import os
 
 from datagen.budget import Budget, project_total, GLM52_PRICE
 from datagen.generate import generate_one
+from datagen.quality import normalize_code
+
+
+def _row_key(r: dict) -> str:
+    """Chave de dedup consistente com `quality.dedup`: código/outline normalizado
+    (ignora a anotação do GLM, que varia entre regenerações do mesmo código)."""
+    return normalize_code(r.get("code") or r.get("outline") or "")
+
+
+def dedup_against_existing(existing_rows, new_rows) -> list:
+    """Filtra `new_rows`, descartando linhas cujo código/outline normalizado já
+    aparece em `existing_rows` (dedup cross-run para append idempotente)."""
+    seen = {_row_key(r) for r in existing_rows}
+    out = []
+    for r in new_rows:
+        k = _row_key(r)
+        if k in seen:
+            continue
+        seen.add(k)
+        out.append(r)
+    return out
 
 
 def run_generation(items, ask, budget: Budget, kind: str) -> list:
@@ -65,6 +86,15 @@ def main(argv=None):
     ap.add_argument("--seed", type=int, default=0)
     a = ap.parse_args(argv)
 
+    # Pré-flight: a QA usa o juiz Claude (_judge_ask -> ANTHROPIC_API_KEY). Falhe ANTES
+    # de gastar dinheiro no GLM se a chave estiver ausente. (OPENROUTER_API_KEY já é
+    # validada cedo por make_glm_ask.)
+    if a.kind == "hint" and a.qa > 0 and not os.environ.get("ANTHROPIC_API_KEY"):
+        raise RuntimeError(
+            "ANTHROPIC_API_KEY ausente: a QA (juiz Claude) rodaria após a geração e "
+            "abortaria depois de gastar no GLM. Defina ANTHROPIC_API_KEY ou rode com --qa 0."
+        )
+
     ceiling = a.budget if a.budget > 0 else 4.0
 
     langs = tuple(s.strip() for s in a.langs.split(",") if s.strip())
@@ -93,24 +123,28 @@ def main(argv=None):
               f"-> ~{proj['projected_valid_for_ceiling']} válidos para ${ceiling}")
         return
 
-    # escala
-    budget = Budget(ceiling_usd=ceiling if a.budget > 0 else 1e9, price=GLM52_PRICE)
+    # escala — o teto real (ceiling, default $4) é sempre aplicado, senão um run sem
+    # --budget geraria sobre a amostra inteira (n=10_000) sem freio de custo.
+    budget = Budget(ceiling_usd=ceiling, price=GLM52_PRICE)
     ask = make_glm_ask(GLM_MODEL, on_usage=budget.charge)
     valids = run_generation(items, ask, budget, a.kind)
     valids = dedup(valids)
+    # balance_by_ratio limita a razão de skip POR run; balanceamento cumulativo entre
+    # múltiplos runs de escala está fora do escopo (escala é single-run por kind).
     if a.kind == "hint":
         valids = balance_by_ratio(valids, lambda r: r["hint"].get("skip") is True,
                                   a.max_skip_ratio, seed=a.seed)
     else:
         valids = balance_by_ratio(valids, lambda r: r["panorama"].get("skip") is True,
                                   a.max_skip_ratio, seed=a.seed)
-    # dedup contínuo contra o que já existe
-    existing = {json.dumps(r, sort_keys=True) for r in _load_existing(out_path)}
-    fresh = [r for r in valids if json.dumps(r, sort_keys=True) not in existing]
+    # dedup contínuo contra o que já existe — chaveado pelo código/outline normalizado
+    # (não pelo JSON da linha inteira, que muda a cada regeneração da anotação).
+    existing_rows = _load_existing(out_path)
+    fresh = dedup_against_existing(existing_rows, valids)
     _append_jsonl(out_path, fresh)
 
     report = {"mode": "scale", "kind": a.kind, "spent": round(budget.spent(), 4),
-              "written": len(fresh), "total_now": len(existing) + len(fresh),
+              "written": len(fresh), "total_now": len(existing_rows) + len(fresh),
               "by_lang": counts_by(valids, lambda r: r["lang"]),
               "tokens": {"prompt": budget.prompt_tokens, "completion": budget.completion_tokens}}
     if a.kind == "hint":
