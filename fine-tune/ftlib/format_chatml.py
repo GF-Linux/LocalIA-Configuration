@@ -10,6 +10,16 @@ TUTOR_SYSTEM = (
 
 CODE_SYSTEM = "You are a helpful coding assistant. Answer the task with correct code."
 
+PANORAMA_SYSTEM = (
+    "Você é um professor de programação, em português do Brasil. Olhe o ESQUELETO do\n"
+    "arquivo do aluno e dê uma visão de PANORAMA: a estrutura/organização e o próximo passo.\n"
+    "Regras:\n"
+    "- \"structure\": uma observação curta sobre organização/arquitetura (ou o que falta).\n"
+    "- \"next\": o próximo passo concreto / para onde isso vai.\n"
+    "- Se o arquivo é trivial demais para um panorama, responda exatamente {\"skip\": true}.\n"
+    "Responda SOMENTE em JSON válido: {\"structure\":\"...\",\"next\":\"...\"}  ou  {\"skip\": true}"
+)
+
 def seed_to_chatml(seed: dict) -> dict:
     return {"messages": [
         {"role": "system", "content": TUTOR_SYSTEM},
