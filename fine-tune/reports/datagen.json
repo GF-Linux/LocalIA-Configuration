@@ -1,0 +1,69 @@
+{
+  "feature": "B2 — fábrica de dados",
+  "engine": "GLM 5.2 via OpenRouter (z-ai/glm-5.2), reasoning ON; QA = juiz Claude (claude-opus-4-8) da B1",
+  "glm_price_usd_per_mtok": {
+    "prompt": 0.95,
+    "completion": 3.0
+  },
+  "generated": {
+    "hints": {
+      "n": 892,
+      "by_lang": {
+        "go": 161,
+        "python": 148,
+        "java": 163,
+        "ruby": 135,
+        "php": 152,
+        "javascript": 133
+      },
+      "skip_rate": 0.176
+    },
+    "panorama": {
+      "n": 1117,
+      "by_lang": {
+        "python": 177,
+        "go": 187,
+        "javascript": 176,
+        "ruby": 194,
+        "php": 193,
+        "java": 190
+      },
+      "skip_rate": 0.2954
+    }
+  },
+  "dataset_total": {
+    "seeds": 61,
+    "oci": 300,
+    "generated_hints": 892,
+    "generated_panorama": 1117,
+    "total": 2370,
+    "train": 2014,
+    "heldout": 356
+  },
+  "qa_judge_claude": {
+    "note": "amostra de 30 dicas ensináveis (mesmo pipeline reasoning-ON)",
+    "overall": 4.18,
+    "rubric": {
+      "socratic": 3.23,
+      "why": 4.87,
+      "concision": 3.6,
+      "relevance": 4.7,
+      "correctness": 4.5
+    },
+    "baseline_incumbente_professor_ft": 3.7,
+    "baseline_base": 1.73
+  },
+  "cost_usd_glm_calibrated": {
+    "dataset_kept": {
+      "hints": 2.691,
+      "panorama": 1.163,
+      "total": 3.854
+    },
+    "exploration_discarded": {
+      "pilot_reasoning_on": 0.079,
+      "reasoning_off_runs": 0.797
+    },
+    "note": "valores na contabilidade calibrada (preço real OpenRouter); confira o dashboard p/ o cobrado"
+  },
+  "schema_validity": "100% JSON válido nas trilhas geradas (schema-gated); fecha o gap de formato 0.975 do dry-run"
+}

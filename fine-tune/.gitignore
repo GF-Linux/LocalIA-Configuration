@@ -2,6 +2,11 @@ __pycache__/
 *.pyc
 .venv/
 data/*.jsonl
+# Trilhas geradas pelo datagen (B2): custaram GLM real (~$3.85) -> preservadas no git.
+# train/heldout/oci ficam ignorados (derivados, reconstruíveis via build_dataset/collect_oci).
+!data/seeds.jsonl
+!data/generated_hints.jsonl
+!data/generated_panorama.jsonl
 outputs/
 *.gguf
 hf_cache/
