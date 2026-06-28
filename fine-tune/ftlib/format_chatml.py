@@ -33,3 +33,10 @@ def oci_to_chatml(row: dict) -> dict:
         {"role": "user", "content": row["instruction"]},
         {"role": "assistant", "content": row["response"]},
     ]}
+
+def panorama_to_chatml(row: dict) -> dict:
+    return {"messages": [
+        {"role": "system", "content": PANORAMA_SYSTEM},
+        {"role": "user", "content": f"Linguagem: {row['lang']}\nEsqueleto do arquivo:\n{row['outline']}"},
+        {"role": "assistant", "content": json.dumps(row["panorama"], ensure_ascii=False)},
+    ]}
