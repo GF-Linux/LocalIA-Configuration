@@ -1,3 +1,4 @@
+from pathlib import Path
 from evallib.codegen import build_code_prompt, strip_code_fence, pass_at_1, load_subset_ids
 from evallib.sandbox import run_one
 
@@ -39,6 +40,11 @@ def test_pass_at_1_counts():
     assert out == {"passed": 1, "total": 2, "frac": 0.5}
 
 def test_real_subset_file_loads():
-    ids = load_subset_ids("data/humaneval_subset.txt")
+    subset_path = str(Path(__file__).parent.parent / "data" / "humaneval_subset.txt")
+    ids = load_subset_ids(subset_path)
     assert len(ids) >= 30
     assert all(i.startswith("HumanEval/") for i in ids)
+
+def test_pass_at_1_empty_no_crash():
+    out = pass_at_1([], [], lambda program: 0)
+    assert out == {"passed": 0, "total": 0, "frac": 0.0}

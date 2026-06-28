@@ -26,7 +26,7 @@ def make_ollama_code_ask(model: str, url: str = "http://localhost:11434"):
 
 def load_subset_ids(path: str) -> list[str]:
     with open(path, encoding="utf-8") as f:
-        return [ln.strip() for ln in f if ln.strip() and not ln.startswith("#")]
+        return [ln.strip() for ln in f if ln.strip() and not ln.strip().startswith("#")]
 
 def pass_at_1(problems, completions, executor) -> dict:
     from evallib.sandbox import run_one
