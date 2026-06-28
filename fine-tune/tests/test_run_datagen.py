@@ -33,3 +33,11 @@ def test_pilot_projection_computes_cost_per_valid_and_target():
     assert round(proj["spent"], 4) == 0.10
     assert round(proj["per_valid"], 5) == 0.002
     assert proj["projected_valid_for_ceiling"] == 2000
+
+def test_pilot_projection_zero_valid_does_not_divide_by_zero():
+    budget = Budget(ceiling_usd=4.0, price={"prompt": 0.0, "completion": 1.0})
+    budget.charge({"prompt_tokens": 0, "completion_tokens": 100_000})  # $0.10
+    proj = pilot_projection(budget, n_valid=0, ceiling=4.0)
+    assert proj["n_valid"] == 0
+    assert proj["per_valid"] == 0.0
+    assert proj["projected_valid_for_ceiling"] == 0

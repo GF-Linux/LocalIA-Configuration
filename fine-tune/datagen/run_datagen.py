@@ -66,8 +66,6 @@ def main(argv=None):
     a = ap.parse_args(argv)
 
     ceiling = a.budget if a.budget > 0 else 4.0
-    budget = Budget(ceiling_usd=ceiling if a.budget > 0 else 1e9, price=GLM52_PRICE)
-    ask = make_glm_ask(GLM_MODEL, on_usage=budget.charge)
 
     langs = tuple(s.strip() for s in a.langs.split(",") if s.strip())
     raw = sample_code(iter_code_search_net(langs, a.per_lang),
@@ -83,7 +81,7 @@ def main(argv=None):
         budget = Budget(ceiling_usd=1e9, price=GLM52_PRICE)
         ask = make_glm_ask(GLM_MODEL, on_usage=budget.charge)
         valids = run_generation(items[:a.pilot], ask, budget, a.kind)
-        proj = pilot_projection(budget, len(valids), 4.0)
+        proj = pilot_projection(budget, len(valids), ceiling)
         report = {"mode": "pilot", "kind": a.kind, "projection": proj,
                   "tokens": {"prompt": budget.prompt_tokens, "completion": budget.completion_tokens},
                   "yield": f"{len(valids)}/{a.pilot}"}
@@ -96,6 +94,8 @@ def main(argv=None):
         return
 
     # escala
+    budget = Budget(ceiling_usd=ceiling if a.budget > 0 else 1e9, price=GLM52_PRICE)
+    ask = make_glm_ask(GLM_MODEL, on_usage=budget.charge)
     valids = run_generation(items, ask, budget, a.kind)
     valids = dedup(valids)
     if a.kind == "hint":
