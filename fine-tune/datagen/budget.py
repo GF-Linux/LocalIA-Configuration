@@ -1,8 +1,9 @@
 """Contabilidade de custo com teto rígido. Puro (sem rede)."""
 
-# USD por 1M tokens. PLACEHOLDER calibrado no piloto contra a página de preços do
-# OpenRouter (z-ai/glm-5.2). O teto é conservador se o preço estiver superestimado.
-GLM52_PRICE = {"prompt": 0.50, "completion": 1.50}
+# USD por 1M tokens. Calibrado no piloto (2026-06-28) contra a página de preços do
+# OpenRouter para z-ai/glm-5.2: $0.95 in / $3.00 out. (O placeholder inicial $0.50/$1.50
+# subestimava ~2x — o teto rígido teria gasto ~2x o alvo.)
+GLM52_PRICE = {"prompt": 0.95, "completion": 3.00}
 
 
 class Budget:
