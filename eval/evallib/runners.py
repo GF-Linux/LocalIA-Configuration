@@ -11,7 +11,8 @@ def build_tutor_messages(probe: dict) -> list[dict]:
 
 def make_ollama_ask(model: str, url: str = "http://localhost:11434"):
     def ask(messages: list[dict]) -> str:
-        body = json.dumps({"model": model, "messages": messages, "stream": False}).encode()
+        body = json.dumps({"model": model, "messages": messages, "stream": False,
+                           "options": {"temperature": 0}}).encode()
         req = urllib.request.Request(f"{url}/api/chat", data=body,
                                      headers={"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=180) as resp:

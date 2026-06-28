@@ -17,7 +17,8 @@ def strip_code_fence(raw: str) -> str:
 
 def make_ollama_code_ask(model: str, url: str = "http://localhost:11434"):
     def ask(prompt: str) -> str:
-        body = json.dumps({"model": model, "prompt": prompt, "stream": False}).encode()
+        body = json.dumps({"model": model, "prompt": prompt, "stream": False,
+                           "options": {"temperature": 0}}).encode()
         req = urllib.request.Request(f"{url}/api/generate", data=body,
                                      headers={"Content-Type": "application/json"})
         with urllib.request.urlopen(req, timeout=180) as resp:

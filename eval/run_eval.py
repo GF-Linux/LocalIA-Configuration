@@ -55,11 +55,15 @@ def main():
         print("[aviso] --no-judge: T1/T2 não rodaram; G1 será reprovado por padrão.", file=sys.stderr)
     else:
         from evallib.judge import make_claude_ask
-        n_calls = len(probes) * 3  # T1 ft + T1 base + T2
+        # T1 (qualidade) é só sobre probes ENSINÁVEIS (não-skip): pontuar {"skip":true}
+        # numa rubrica de 1-5 não faz sentido e poluiria o sinal de G1.
+        teachable = [(p, hf, hb) for p, hf, hb in zip(probes, hints_ft, hints_base)
+                     if not p["should_skip"]]
+        n_calls = len(teachable) * 2 + len(probes)  # T1 ft + T1 base (ensináveis) + T2 (todos)
         print(f"[info] vou fazer ~{n_calls} chamadas ao Claude (juiz). Ctrl-C para abortar.", file=sys.stderr)
         judge_ask = make_claude_ask()
-        q_ft = score_quality(list(zip(probes, hints_ft)), judge_ask)
-        q_base = score_quality(list(zip(probes, hints_base)), judge_ask)
+        q_ft = score_quality([(p, hf) for p, hf, _ in teachable], judge_ask)
+        q_base = score_quality([(p, hb) for p, _, hb in teachable], judge_ask)
         quality = {"overall_ft": q_ft["overall"], "overall_base": q_base["overall"]}
         ab = compare(probes, hints_ft, hints_base, judge_ask, seed=42)
 
