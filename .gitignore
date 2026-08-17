@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+.venv/
+# a arte gerada e pesada e refazivel pelo arte/render.py
+arte/saida/
