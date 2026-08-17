@@ -701,6 +701,13 @@ def trata_barra(sess: Sessao, linha: str) -> bool:
     """Devolve False para encerrar o programa."""
     corpo = linha[1:].strip()
     nome, _, arg = corpo.partition(" ")
+
+    # `/` sozinho abre o menu. Antes caía em COMANDOS.get("") e respondia
+    # "não conheço /" — quem digita a barra está justamente perguntando o que
+    # existe, e levava um erro por isso.
+    if not nome:
+        return cmd_ajuda(sess, "")
+
     fn = COMANDOS.get(nome.lower())
     if not fn:
         perto = [c for c in COMANDOS if c.startswith(nome.lower())]
@@ -819,6 +826,13 @@ def main() -> int:
     prepara_historico()
     readline.set_completer(completa(sess))
     readline.parse_and_bind("tab: complete")
+    # Um Tab só já mostra as opções. O padrão do readline é completar o prefixo
+    # comum no primeiro Tab e só listar no segundo — quem não sabe disso conclui
+    # que a completação não existe, que foi exatamente o relato.
+    readline.parse_and_bind("set show-all-if-ambiguous on")
+    readline.parse_and_bind("set completion-ignore-case on")
+    # 136 skills indexadas cabem numa listagem sem a pergunta "mostrar tudo?"
+    readline.parse_and_bind("set completion-query-items 200")
     readline.set_completer_delims(" ")
 
     p = config.prefs()
