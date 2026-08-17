@@ -696,6 +696,42 @@ COMANDOS = {
     "sair": cmd_sair, "quit": cmd_sair, "exit": cmd_sair,
 }
 
+#? O QUE CADA COMANDO FAZ — Decisão sobre a lista do Tab 17/08/2026
+#!
+#! 1. O `COMANDOS` acima tem APELIDOS: `ajuda`/`help`/`?` são o mesmo comando, e
+#!    `sair`/`quit`/`exit` também. O completador listava as chaves cruas, então a
+#!    pessoa via o mesmo comando três vezes, sem saber que era o mesmo.
+#! 2. Esta tabela tem só o nome CANÔNICO, e uma linha dizendo o que ele faz.
+#! 3. Digitar o apelido continua funcionando — ele só não é mais oferecido.
+#! 4. Ordem de assunto, não alfabética: é a ordem em que se precisa deles.
+DESCRICAO = {
+    "ajuda":        "mostra esta lista",
+    "think":        "liga o raciocínio; custa minutos por resposta",
+    "limpar":       "esquece a conversa (mantém skills e projeto)",
+    "salvar":       "grava a conversa em ~/.config/jared/sessoes",
+    "ctx":          "quanto do contexto já está ocupado",
+    "modelos":      "lista os modelos do registro",
+    "modelo":       "troca de modelo no meio da conversa",
+    "config":       "abre o modelos.toml no editor",
+    "recarregar":   "relê o modelos.toml sem sair",
+    "ferramentas":  "on | leitura | off — deixa o modelo agir na pasta",
+    "pasta":        "muda a pasta de trabalho (raiz do confinamento)",
+    "skills":       "procura entre as skills instaladas",
+    "skill":        "carrega o corpo de uma skill no contexto",
+    "projetos":     "lista os projetos do segundo cérebro",
+    "projeto":      "carrega overview, status e as 2 últimas sessões",
+    "ref":          "procura num acervo de referência (h4cker, livros)",
+    "ref+":         "carrega o resultado nº n da última busca",
+    "descarregar":  "tira uma skill ou projeto do contexto",
+    "perfil":       "quem o assistente é — abre o perfil.md",
+    "abertura":     "troca o desenho de abertura",
+    "sair":         "encerra (ou Ctrl-D)",
+}
+
+#* Os apelidos que existem mas NÃO são oferecidos no Tab, para a lista não
+#* repetir o mesmo comando com nomes diferentes.
+APELIDOS = {k for k in COMANDOS if k not in DESCRICAO}
+
 
 def trata_barra(sess: Sessao, linha: str) -> bool:
     """Devolve False para encerrar o programa."""
@@ -744,7 +780,9 @@ def completa(sess: Sessao):
             return None
         partes = buf[1:].split(" ")
         if len(partes) <= 1:
-            cands = [f"/{c}" for c in sorted(COMANDOS) if c.startswith(partes[0])]
+            #! Só os canônicos: `help` e `?` fazem o mesmo que `ajuda`, e ver o
+            #!   mesmo comando três vezes na lista não ajuda ninguém.
+            cands = [f"/{c}" for c in DESCRICAO if c.startswith(partes[0])]
         elif partes[0] in ("modelo",):
             cands = [m for m in sess.cfg.modelos if m.startswith(partes[-1])]
         elif partes[0] in ("skill",):
@@ -824,6 +862,20 @@ def main() -> int:
         return 0
 
     prepara_historico()
+    #* O Tab passa a mostrar o que cada comando faz.
+    #! O readline, sozinho, imprime só os nomes em colunas. Este gancho troca a
+    #!   impressão por uma linha por comando, com a descrição ao lado — que era
+    #!   a queixa: a lista dizia os nomes e não explicava nenhum.
+    def mostrar(substituicao, candidatos, tamanho):
+        print()
+        for c in candidatos:
+            nome = c.lstrip("/")
+            texto = DESCRICAO.get(nome, "")
+            print(f"  {tela.ACENTO}/{nome:<13}{tela.RESET}{tela.FRACO}{texto}{tela.RESET}")
+        print(f"\n{tela.FRACO}  {len(candidatos)} comandos{tela.RESET}")
+        print(tela.prompt() + readline.get_line_buffer(), end="", flush=True)
+
+    readline.set_completion_display_matches_hook(mostrar)
     readline.set_completer(completa(sess))
     readline.parse_and_bind("tab: complete")
     # Um Tab só já mostra as opções. O padrão do readline é completar o prefixo
